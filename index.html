@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>Hello APP</title>
+    <link rel="stylesheet" type="text/css" href="./css/api.css" />
+    <link rel="stylesheet" type="text/css" href="./css/aui.css" />
+</head>
+<body>
+  <header class="aui-bar aui-bar-nav">
+    <div class="aui-title">物流查询</div>
+    <a class="aui-pull-right aui-btn aui-btn-outlined" onclick="startScanner();">
+        <span class="aui-iconfont aui-icon-search"></span>
+    </a>
+</header>
+  <div class="aui-searchbar" id="search">
+      <div class="aui-searchbar-input aui-border-radius">
+          <i class="aui-iconfont aui-icon-search"></i>
+          <input type="number" placeholder="请输入搜索内容" id="search-input">
+          <div class="aui-searchbar-clear-btn">
+              <i class="aui-iconfont aui-icon-close"></i>
+          </div>
+      </div>
+      <div class="aui-searchbar-btn" tapmode>取消</div>
+  </div>
+</div>
+</body>
+<script type="text/javascript" src="./script/api.js"></script>
+<script type="text/javascript">
+
+    function startScanner() {
+      var FNScanner = api.require("FNScanner");
+
+      FNScanner.openScanner({
+          autorotation: true
+      }, function(ret, err){
+          if( ret ){
+              if(ret.eventType == 'success'){
+                $api.val($api.byId('search-input'), ret.content);
+                searchBarBtn.style.marginRight = 0;
+                searchBarClearBtn.style.display = 'block';
+                searchBarBtn.classList.add("aui-text-info");
+                searchBarBtn.textContent = "搜索";
+                searchBarInput.focus();
+              }
+          }
+      });
+    }
+
+    apiready = function(){
+        api.parseTapmode();
+        $api.fixStatusBar(header);
+        $api.fixIos7Bar(header);
+    }
+
+    var header = $api.dom('header');
+    var searchBar = document.querySelector(".aui-searchbar");
+    var searchBarInput = document.querySelector(".aui-searchbar input");
+    var searchBarBtn = document.querySelector(".aui-searchbar .aui-searchbar-btn");
+    var searchBarClearBtn = document.querySelector(".aui-searchbar .aui-searchbar-clear-btn");
+
+    if(searchBar){
+        searchBarInput.onclick = function(){
+            searchBarBtn.style.marginRight = 0;
+        }
+        searchBarInput.oninput = function(){
+            if(this.value.length){
+                searchBarClearBtn.style.display = 'block';
+                searchBarBtn.classList.add("aui-text-info");
+                searchBarBtn.textContent = "搜索";
+            }else{
+                searchBarClearBtn.style.display = 'none';
+                searchBarBtn.classList.remove("aui-text-info");
+                searchBarBtn.textContent = "取消";
+            }
+        }
+    }
+    searchBarClearBtn.onclick = function(){
+        this.style.display = 'none';
+        searchBarInput.value = '';
+        searchBarBtn.classList.remove("aui-text-info");
+        searchBarBtn.textContent = "取消";
+    }
+    searchBarBtn.onclick = function(){
+
+      var keywords = searchBarInput.value;
+      if(keywords.length){
+
+          //关闭之前的Frame
+          api.closeFrame({
+              name: 'main'
+          });
+
+
+          searchBarInput.blur();
+          //开始搜索
+          api.showProgress({
+              title: '努力加载中...',
+              text: '先喝杯茶...',
+              modal: true
+          });
+
+          api.ajax({
+              url: 'http://route.showapi.com/64-19?com=auto&nu='+$api.val($api.byId('search-input'))+'&showapi_appid=41642&showapi_sign=7ef175fff6cb42a3893fafa8563a9b08',
+              method: 'get',
+          },function(ret, err){
+            api.hideProgress();
+              if (ret) {
+                if(ret.showapi_res_body.msg != undefined){
+                  alert(ret.showapi_res_body.msg);
+                }else{
+                  //查询到数据了
+                  api.openFrame({
+                      name: 'main',
+                      url: 'html/main.html',
+                      rect: {
+                          x: 0,
+                          y: $api.offset(header).h + $api.offset(searchBar).h,
+                          w: api.winWidth,
+                          h: api.winHeight - $api.offset(header).h - $api.offset(searchBar).h
+                      },
+                      pageParam: {
+                          'data': ret.showapi_res_body.data,
+                      }
+                  });
+                }
+
+            } else {
+                alert(err.showapi_res_error);
+            }
+          });
+      }else{
+          this.style.marginRight = "-"+this.offsetWidth+"px";
+          searchBarInput.value = '';
+          searchBarInput.blur();
+      }
+    }
+</script>
+</html>
